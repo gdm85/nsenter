@@ -1,29 +1,51 @@
-#!/bin/sh
+#!/bin/bash
+## docker-enter
+## @author jpetazzo
+## @author gdm85
+##
+## this is an heavily modified version that uses docker exec to provide a correct container environment
+##
+#
 
-NSENTER=$(dirname "$0")/nsenter
+if ! type nsenter 2>/dev/null >/dev/null; then
+	echo "nsenter binary is not in PATH" 1>&2
+	exit 1
+fi
+
+function create_env_args() {
+	local CID="$1"
+	echo -n "HOME=/root USER=root UID=0 LOGNAME=root USERNAME=root "
+	docker exec "$CID" env | tr '\n' ' '
+}
 
 if [ -z "$1" ]; then
-    echo "Usage: docker-enter CONTAINER [COMMAND [ARG]...]"
-    echo ""
-    echo "Enters the Docker CONTAINER and executes the specified COMMAND."
-    echo "If COMMAND is not specified, runs an interactive shell in CONTAINER."
+	echo "Usage: docker-enter CONTAINER [COMMAND [ARG]...]"
+	echo ""
+	echo "Enters the Docker CONTAINER and executes the specified COMMAND."
+	echo "If COMMAND is not specified, runs an interactive shell in CONTAINER."
+	exit 1
+fi
+
+PID=$(docker inspect --format "{{.State.Pid}}" "$1") || exit $?
+if [ -z "$PID" ]; then
+	exit 1
+fi
+
+## environment override
+ENV="$(create_env_args $1)" || exit $?
+shift
+
+OPTS="--target $PID --mount --uts --ipc --net --pid --"
+
+if [ -z "$1" ]; then
+		# No command given.
+		# Use su to clear all host environment variables except for TERM,
+		# initialize the environment variables HOME, SHELL, USER, LOGNAME, PATH,
+		# and start a login shell.
+		# Container environment is prepended and then mantained by option '-m' of su
+		nsenter $OPTS /bin/sh -c "env --ignore-environment $ENV su -m -l -- root"
 else
-    PID=$(docker inspect --format "{{.State.Pid}}" "$1")
-    if [ -z "$PID" ]; then
-        exit 1
-    fi
-    shift
-
-    OPTS="--target $PID --mount --uts --ipc --net --pid --"
-
-    if [ -z "$1" ]; then
-        # No command given.
-        # Use su to clear all host environment variables except for TERM,
-        # initialize the environment variables HOME, SHELL, USER, LOGNAME, PATH,
-        # and start a login shell.
-        "$NSENTER" $OPTS su - root
-    else
-        # Use env to clear all host environment variables.
-        "$NSENTER" $OPTS env --ignore-environment -- "$@"
-    fi
+		# Also in this case erase everything except container environment
+		nsenter $OPTS env --ignore-environment $ENV \
+			"$@"
 fi

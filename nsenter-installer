@@ -1,12 +1,15 @@
 #!/bin/sh
+
+BIN=/home/builder/bin
+
 if mountpoint -q /target; then
 	echo "Installing nsenter to /target"
-	cp /nsenter /target
+	cp $BIN/nsenter /target || exit $?
 	echo "Installing docker-enter to /target"
-	cp /docker-enter /target
+	cp $BIN/docker-enter /target || exit $?
 else
 	echo "/target is not a mountpoint."
 	echo "You can either:"
 	echo "- re-run this container with -v /usr/local/bin:/target"
-	echo "- extract the nsenter binary (located at /nsenter)"
+	echo "- extract the nsenter binary (located at /home/builder/bin/nsenter)"
 fi

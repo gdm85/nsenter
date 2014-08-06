@@ -3,6 +3,10 @@
 This is a small Docker recipe to build `nsenter` easily and install it in your
 system.
 
+**NOTE**: this is a modified version by gdm85 and requires ``jq`` to work.
+Improvements:
+- always use container's environment
+- always clear source environment
 
 ## What is `nsenter`?
 
@@ -14,6 +18,7 @@ We are talking about [container namespaces].
 `nsenter` can do many useful things, but the main reason why I'm so
 excited about it is because it lets you [enter into a Docker container].
 
+`nsenter` is work of Eric Biederman, see https://git.kernel.org/cgit/utils/util-linux/util-linux.git/tree/AUTHORS#n43
 
 ## Why build `nsenter` in a container?
 
@@ -31,16 +36,16 @@ method to build `nsenter` uses Docker itself.
 
 If you want to install `nsenter` into `/usr/local/bin`, just do this:
 
-    docker run --rm -v /usr/local/bin:/target jpetazzo/nsenter
+    docker run --rm -v /usr/local/bin:/target gdm85/nsenter
 
-The `jpetazzo/nsenter` container will detect that `/target` is a
+The `gdm85/nsenter` container will detect that `/target` is a
 mountpoint, and it will copy the `nsenter` binary into it.
 
 If you don't trust me, and prefer to extract the `nsenter` binary,
 rather than allowing my container to potentially wreak havoc into
 your system's `$PATH`, you can also do this:
 
-    docker run --rm jpetazzo/nsenter cat /nsenter > /tmp/nsenter
+    docker run --rm gdm85/nsenter cat /nsenter > /tmp/nsenter
 
 Then do whatever you want with the binary in `/tmp/nsenter`.
 
@@ -76,7 +81,7 @@ If you are using boot2docker, you can use the function below, to:
 
 ```
 docker-enter() {
-  boot2docker ssh '[ -f /var/lib/boot2docker/nsenter ] || docker run --rm -v /var/lib/boot2docker/:/target jpetazzo/nsenter'
+  boot2docker ssh '[ -f /var/lib/boot2docker/nsenter ] || docker run --rm -v /var/lib/boot2docker/:/target gdm85/nsenter'
   boot2docker ssh -t sudo /var/lib/boot2docker/docker-enter "$@"
 }
 ```
