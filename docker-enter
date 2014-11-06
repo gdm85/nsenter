@@ -1,22 +1,14 @@
 #!/bin/bash
 ## docker-enter
-## @author jpetazzo
 ## @author gdm85
+## @author jpetazzo
 ##
-## this is an heavily modified version that uses docker exec to provide a correct container environment
+## this is an heavily modified version from jpetazzo's original
+## it uses /proc/*/environ to retrieve a correct container environment
+## and then performs other sorcerery tricks to setup an usable shell
+## both for interactive ad non-interactive use within containers
 ##
 #
-
-if ! type nsenter 2>/dev/null >/dev/null; then
-	echo "nsenter binary is not in PATH" 1>&2
-	exit 1
-fi
-
-function create_env_args() {
-	local CID="$1"
-	echo -n "HOME=/root USER=root UID=0 LOGNAME=root USERNAME=root "
-	docker exec "$CID" env | tr '\n' ' '
-}
 
 if [ -z "$1" ]; then
 	echo "Usage: docker-enter CONTAINER [COMMAND [ARG]...]"
@@ -26,26 +18,16 @@ if [ -z "$1" ]; then
 	exit 1
 fi
 
-PID=$(docker inspect --format "{{.State.Pid}}" "$1") || exit $?
-if [ -z "$PID" ]; then
-	exit 1
-fi
+BASENAME=$(dirname $(readlink -m $0)) || exit $?
 
-## environment override
-ENV="$(create_env_args $1)" || exit $?
+. "$BASENAME/_docker_enter.lib.sh" || exit $?
+
+CID="$1"
 shift
 
-OPTS="--target $PID --mount --uts --ipc --net --pid --"
-
-if [ -z "$1" ]; then
-		# No command given.
-		# Use su to clear all host environment variables except for TERM,
-		# initialize the environment variables HOME, SHELL, USER, LOGNAME, PATH,
-		# and start a login shell.
-		# Container environment is prepended and then mantained by option '-m' of su
-		nsenter $OPTS /bin/sh -c "env --ignore-environment $ENV su -m -l -- root"
+if [ $# -eq 0 ]; then
+	echo "--> docker-enter: now entering container $CID with an interactive shell" 1>&2
+	docker_nsenter "$CID" su -m -l -- root
 else
-		# Also in this case erase everything except container environment
-		nsenter $OPTS env --ignore-environment $ENV \
-			"$@"
+	docker_nsenter "$CID" "$@"
 fi
