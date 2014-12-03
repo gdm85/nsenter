@@ -19,7 +19,7 @@ function docker_nsenter() {
 	shift 1
 
 	PID=$(docker inspect --format "{{.State.Pid}}" "$CID") || return $?
-	if [ -z "$PID" ]; then
+	if [[ -z "$PID" || "$PID" == "<no value" || "$PID" == "0" ]]; then
 		return 1
 	fi
 
