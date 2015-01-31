@@ -3,10 +3,6 @@
 This is a small Docker recipe to build `nsenter` easily and install it in your
 system.
 
-**NOTE**: this is a modified version by gdm85 and requires ``jq`` to work.
-Improvements:
-- always use container's environment
-- always clear source environment
 
 ## What is `nsenter`?
 
