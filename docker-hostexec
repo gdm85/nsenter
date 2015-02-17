@@ -1,0 +1,30 @@
+#!/bin/bash
+## docker-hostexec
+## @author gdm85
+##
+## execute a binary from host inside network/uts/ipc/proc namespace of container
+##
+#
+
+if [ "$#" -lt 2 ]; then
+	echo "Usage: docker-exec CONTAINER COMMAND [ARG]"
+	exit 1
+fi
+
+BASENAME=$(dirname $(readlink -m $0)) || exit $?
+
+. "$BASENAME/nsenter.lib.sh" || exit $?
+
+CID="$1"
+shift
+
+PID=$(docker_get_pid "$CID") || exit $?
+
+## get absolute path to nsenter
+set -o pipefail && \
+NSE=$(whereis -b nsenter | awk '{ print $2 }') || return $?
+test -z "$NSE" && return 2
+
+OPTS="--target $PID --uts --ipc --net --pid -F"
+
+env --ignore-environment $ENV $NSE $OPTS -- "$@"
