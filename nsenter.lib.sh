@@ -19,6 +19,11 @@ function docker_get_pid() {
 		return 1
 	fi
 
+	if [ $PID -eq 0 ]; then
+		echo "'$CID' does not appear to be running" 1>&2
+		return 2
+	fi
+
 	echo "$PID"
 }
 
