@@ -4,7 +4,7 @@
 ##
 #
 
-FROM gdm85/wheezy
+FROM ubuntu-core
 
 ENV VERSION 2.24
 ENV TERM xterm
