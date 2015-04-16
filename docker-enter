@@ -18,9 +18,7 @@ if [ -z "$1" ]; then
 	exit 1
 fi
 
-BASENAME=$(dirname $(readlink -m $0)) || exit $?
-
-. "$BASENAME/nsenter.lib.sh" || exit $?
+. /srv/nsenter/nsenter.lib.sh || exit $?
 
 CID="$1"
 shift

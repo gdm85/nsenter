@@ -14,7 +14,8 @@ function docker_get_pid() {
 	local PID
 	local CID="$1"
 
-	PID=$(docker inspect --format "{{.State.Pid}}" "$CID") || return $?
+	PID=$(docker inspect --format '{{printf "%.0f" .State.Pid}}' "$CID") || return $?
+
 	if [[ ! "$PID" =~ ^[[:digit:]]+$ ]]; then
 		return 1
 	fi
